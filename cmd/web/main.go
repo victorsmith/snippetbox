@@ -1,10 +1,13 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"log"
 	"net/http"
 	"os"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type application struct {
@@ -12,49 +15,50 @@ type application struct {
 	errorLog *log.Logger
 }
 
+// for a given DSN.
+
+func openDB(dsn string) (*sql.DB, error) {
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, err
+	}
+	if err = db.Ping(); err != nil {
+		return nil, err
+	}
+	return db, nil
+}
+
 func main() {
 
 	addr := flag.String("addr", ":4000", "http network address")
+	dsn := flag.String("dsn", "vic:sb@/snippetbox?parseTime=true", "Database Connection String")
+
 	// Must call parse, or default value will be used
 	flag.Parse()
 
-	// Setup loggers
-	// Use log.New() to create a logger for writing information messages. This takes
-	// three parameters: the destination to write the logs to (os.Stdout), a string
-	// prefix for message (INFO followed by a tab), and flags to indicate what
-	// additional information to include (local date and time). Note that the flags
-	// are joined using the bitwise OR operator |.
-	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+	// dpenDB is a helper function which connects our application to a mysql db
+	db, err := openDB(*dsn)
+	
+	// Closes db connection pool before main exits
+	defer db.Close()
 
-	// Create a logger for writing error messages in the same way, but use stderr as
-	// the destination and use the log.Lshortfile flag to include the relevant
-	// file name and line number.
+	// Setup logger
+	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 
 	app := &application{
-		infoLog: infoLog,
+		infoLog:  infoLog,
 		errorLog: errorLog,
 	}
-
-	mux := http.NewServeMux()
-	fileServer := http.FileServer(http.Dir("./ui/static/"))
-
-	// Strips '/static' leaving only /. That way the file server
-	// doesn't process an unwanted resource (/static) if it happens to exist
-	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
-
-	mux.HandleFunc("/", app.home)
-	mux.HandleFunc("/snippet/view", app.snippetView)
-	mux.HandleFunc("/snippet/create", app.snippetCreate)
 
 	// Establish server so that we can add a logger (instead of using ListenAndServe)
 	srv := &http.Server{
 		Addr:     *addr,
 		ErrorLog: errorLog,
-		Handler:  mux,
+		Handler:  app.routes(),
 	}
 
 	infoLog.Printf("Starting server on %s", *addr)
-	err := srv.ListenAndServe()
+	err = srv.ListenAndServe()
 	errorLog.Fatal(err)
 }

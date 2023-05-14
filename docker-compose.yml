@@ -4,10 +4,8 @@ services:
   snippetdb:
     image: mysql:latest
     container_name: snippetdb
-    command: --default-authentication-plugin=mysql_native_password
     restart: always
     environment:
-      MYSQL_DATABASE: snippet
       MYSQL_ROOT_PASSWORD: snippet
     ports:
       - "3306:3306"

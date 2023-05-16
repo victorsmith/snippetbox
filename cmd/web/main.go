@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -14,9 +15,10 @@ import (
 )
 
 type application struct {
-	infoLog  *log.Logger
-	errorLog *log.Logger
-	snippets *models.SnippetModel
+	infoLog       *log.Logger
+	errorLog      *log.Logger
+	snippets      *models.SnippetModel
+	templateCache map[string]*template.Template
 }
 
 // for a given DSN.
@@ -50,10 +52,17 @@ func main() {
 	// Closes db connection pool before main exits
 	defer db.Close()
 
+	// initialize template cache
+	cache, err := newTemplateCache()
+	if err != nil {
+		errorLog.Fatal(err)
+	}
+	
 	app := &application{
 		infoLog:  infoLog,
 		errorLog: errorLog,
 		snippets: &models.SnippetModel{DB: db},
+		templateCache: cache,
 	}
 
 	// Establish server so that we can add a logger (instead of using ListenAndServe)

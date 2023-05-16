@@ -1,6 +1,9 @@
 package main
 
 import (
+	"html/template"
+	"path/filepath"
+
 	"snippetbox.victorsmith.dev/internal/models"
 )
 
@@ -9,4 +12,37 @@ import (
 type templateData struct {
 	Snippet  *models.Snippet
 	Snippets []*models.Snippet
+}
+
+// filename: []ts
+func newTemplateCache() (map[string]*template.Template, error) {
+	// Initialize new map to act as the cache
+	cache := map[string]*template.Template{}
+
+	// Get slice of paths which match the provided pattern
+	pages, err := filepath.Glob("./ui/html/pages/*.html")
+	if err != nil {
+		return nil, err
+	}
+
+	for _, page := range pages {
+		name := filepath.Base(page)
+
+		// Slice template with base + partials in appropriate order
+		files := []string{
+			"./ui/html/base.html",
+			"./ui/html/partials/nav.html",
+			page,
+		}
+
+		// parse files into template set
+		ts, err := template.ParseFiles(files...)
+		if err != nil {
+			return nil, err
+		}
+
+		// Cache the ts. Use name as key
+		cache[name] = ts
+	}
+	return cache, nil
 }

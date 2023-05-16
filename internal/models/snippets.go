@@ -77,13 +77,13 @@ func (m *SnippetModel) Latest() ([]*Snippet, error) {
 	for rows.Next() {
 		s := &Snippet{}
 
-		err := rows.Scan(&s.ID, &s.Title, &s.Content, &s.Expires)
+		err := rows.Scan(&s.ID, &s.Title, &s.Content, &s.Created, &s.Expires)
 		if err != nil {
 			return nil, err
 		}
 		snippets = append(snippets, s)
 	}
-	
+
 	// Get all errors encounterd in iteration
 	if err = rows.Err(); err != nil {
 		return nil, err

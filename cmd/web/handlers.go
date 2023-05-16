@@ -23,18 +23,20 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, snippet := range snippets {
-		fmt.Fprintf(w, "%+v\n", snippet)
-	}
-	/* Template code
-	===============================
-	// Initialize a slice containing the paths to the two files. It's important
-	// to note that the file containing our base template must be the *first*
-	// file in the slice.
+
+
+	// /* Template code
+
+	// Initialize a slice containing the paths to the two files. 
+	// Base templates MUST go first
 	files := []string{
 		"./ui/html/base.html",
 		"./ui/html/partials/nav.html",
 		"./ui/html/pages/home.html",
+	}
+
+	data := &templateData{
+		Snippets: snippets,
 	}
 
 	// Use the template.ParseFiles() function to read the template file into a
@@ -46,11 +48,11 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		app.serverError(w, err)
 		return
 	}
-	err = ts.ExecuteTemplate(w, "base", nil)
+
+	err = ts.ExecuteTemplate(w, "base", data)
 	if err != nil {
 		app.serverError(w, err)
 	}
-	===============================	*/
 }
 
 func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
@@ -59,8 +61,6 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 		app.notFound(w)
 		return
 	}
-
-	fmt.Println("here", id)
 
 	snippet, err := app.snippets.Get(id)
 	if err != nil {

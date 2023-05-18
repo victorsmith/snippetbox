@@ -13,7 +13,8 @@
       </tr> {{range .Snippets}} <tr>
         <!-- Makes the scope? an element of Snippets (model.Snippet) -->
         <td><a href='/snippet/view?id={{.ID}}'>{{.Title}}</a></td>
-        <td>{{.Created}}</td>
+        <!-- Custom functions can be used like built in functions once registered -->
+        <td>{{humanDate .Created}}</td>
         <td>#{{.ID}}</td>
       </tr> {{end}}
     </table>

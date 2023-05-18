@@ -22,9 +22,9 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	data := &templateData{
-		Snippets: snippets,
-	}
+	
+	data := app.newTemplateData(r)
+	data.Snippets = snippets
 
 	app.render(w, data, http.StatusOK, "home.html")
 }
@@ -45,10 +45,9 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	// fmt.Fprintf(w, "%+v", snippet)
-	data := &templateData{
-		Snippet: snippet,
-	}
+
+	data := app.newTemplateData(r)
+	data.Snippet = snippet
 
 	// We render the individual snippers under the view template
 	app.render(w, data, http.StatusOK, "view.html")

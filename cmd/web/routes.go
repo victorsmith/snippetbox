@@ -13,7 +13,7 @@ func (app *application) routes() http.Handler {
 	mux.HandleFunc("/snippet/view", app.snippetView)
 	mux.HandleFunc("/snippet/create", app.snippetCreate)
 
-	// Pass mux as a http.Handler into custom mw 
-	// appLogger => secureHeaders => servemux => handler
-	return app.appLogger(secureHeaders(mux))
+	// Pass mux as a http.Handler into custom mw
+	// recoverPanic => appLogger => secureHeaders => servemux => handler
+	return app.recoverPanic(app.appLogger(secureHeaders(mux)))
 }

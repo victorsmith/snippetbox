@@ -1,6 +1,10 @@
 package main
 
-import "net/http"
+import (
+	"net/http"
+	
+	"github.com/justinas/alice" // for better middleware chaining
+)
 
 func (app *application) routes() http.Handler {
 	mux := http.NewServeMux()
@@ -15,5 +19,9 @@ func (app *application) routes() http.Handler {
 
 	// Pass mux as a http.Handler into custom mw
 	// recoverPanic => appLogger => secureHeaders => servemux => handler
-	return app.recoverPanic(app.appLogger(secureHeaders(mux)))
+	// return app.recoverPanic(app.appLogger(secureHeaders(mux)))
+
+	// middlware chaining using Alice
+	standard := alice.New(app.recoverPanic, app.appLogger, secureHeaders)
+	return standard.Then(mux)
 }

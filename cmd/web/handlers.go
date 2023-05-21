@@ -7,14 +7,11 @@ import (
 	"strconv"
 
 	"snippetbox.victorsmith.dev/internal/models"
+	"github.com/julienschmidt/httprouter"
 )
 
 // Make the home handler a method for the application struct to introduce dependency injection?
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		app.notFound(w)
-		return
-	}
 
 	snippets, err := app.snippets.Latest()
 	if err != nil {
@@ -29,9 +26,13 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	app.render(w, data, http.StatusOK, "home.html")
 }
 
+// Returns page containing detials of snippet with :id
 func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.URL.Query().Get("id"))
-	if err != nil || id < 1 {
+	// The :id param is passed via the request context
+	params := httprouter.ParamsFromContext(r.Context())
+
+	id, err := strconv.Atoi(params.ByName("id"))
+	if err != nil || id < 1 { 
 		app.notFound(w)
 		return
 	}
@@ -53,7 +54,13 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 	app.render(w, data, http.StatusOK, "view.html")
 }
 
+// Fetch form page
 func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("snippetCreate..."))
+}
+
+// Creates new snippet
+func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", http.MethodPost)
 		app.clientError(w, http.StatusMethodNotAllowed)
@@ -71,5 +78,5 @@ func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Redirect to the snippet page
-	http.Redirect(w, r, fmt.Sprintf("/snippet/view?id=%d", id), http.StatusSeeOther)
+	http.Redirect(w, r, fmt.Sprintf("/snippet/view/%d", id), http.StatusSeeOther)
 }

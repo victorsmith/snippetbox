@@ -4,24 +4,26 @@ import (
 	"net/http"
 	
 	"github.com/justinas/alice" // for better middleware chaining
+	"github.com/julienschmidt/httprouter" // for better routing
 )
 
 func (app *application) routes() http.Handler {
-	mux := http.NewServeMux()
+	// router init 
+	router := httprouter.New()
+
 	fileServer := http.FileServer(http.Dir("./ui/static/"))
 	// Strips '/static' leaving only /. That way the file server
 	// doesn't process an unwanted resource (/static) if it happens to exist
-	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
+	// mux.Handle("/static/", http.StripPrefix("/static", fileServer))
+	// /*filepath => this is a catch all  
+	router.Handler(http.MethodGet, "/static/*filepath", http.StripPrefix("/static", fileServer))
 
-	mux.HandleFunc("/", app.home)
-	mux.HandleFunc("/snippet/view", app.snippetView)
-	mux.HandleFunc("/snippet/create", app.snippetCreate)
-
-	// Pass mux as a http.Handler into custom mw
-	// recoverPanic => appLogger => secureHeaders => servemux => handler
-	// return app.recoverPanic(app.appLogger(secureHeaders(mux)))
+	router.HandlerFunc(http.MethodGet, "/", app.home)
+	router.HandlerFunc(http.MethodGet, "/snippet/view/:id", app.snippetView)
+	router.HandlerFunc(http.MethodGet, "/snippet/create", app.snippetCreate) // fetches form
+	router.HandlerFunc(http.MethodPost, "/snippet/create", app.snippetCreate)
 
 	// middlware chaining using Alice
 	standard := alice.New(app.recoverPanic, app.appLogger, secureHeaders)
-	return standard.Then(mux)
+	return standard.Then(router)
 }

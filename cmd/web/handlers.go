@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"snippetbox.victorsmith.dev/internal/models"
 	"github.com/julienschmidt/httprouter"
+	"snippetbox.victorsmith.dev/internal/models"
 )
 
 // Make the home handler a method for the application struct to introduce dependency injection?
@@ -18,8 +18,7 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		app.serverError(w, err)
 		return
 	}
-	
-	
+
 	data := app.newTemplateData(r)
 	data.Snippets = snippets
 
@@ -32,7 +31,7 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 	params := httprouter.ParamsFromContext(r.Context())
 
 	id, err := strconv.Atoi(params.ByName("id"))
-	if err != nil || id < 1 { 
+	if err != nil || id < 1 {
 		app.notFound(w)
 		return
 	}
@@ -56,20 +55,32 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 
 // Fetch form page
 func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("snippetCreate..."))
+	data := app.newTemplateData(r)
+
+	app.render(w, data, http.StatusOK, "create.html")
 }
 
 // Creates new snippet
 func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.Header().Set("Allow", http.MethodPost)
-		app.clientError(w, http.StatusMethodNotAllowed)
+
+	// Stores the request body in PostForm map as key value pairs
+	// If the data is bad, or there is too much data => PostForm map remains blank
+	err := r.ParseForm()
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
 		return
 	}
 
-	title := "O snail"
-	content := "O snail\nClimb Mount Fuji,\nBut slowly, slowly!\n\n– Kobayashi Issa"
-	expires := 7
+	title := r.PostForm.Get("title")
+	content := r.PostForm.Get("content")
+
+	// Convert to int
+	// Send 400 if conversion fails (invalid date)
+	expires, err := strconv.Atoi(r.PostForm.Get("expires"))
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+	}
+
 
 	id, err := app.snippets.Insert(title, content, expires)
 	if err != nil {

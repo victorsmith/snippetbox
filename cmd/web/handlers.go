@@ -79,23 +79,11 @@ func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 
 // Creates new snippet
 func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
-
-	// Stores the request body in PostForm map as key value pairs
-	// If the data is bad, or there is too much data => PostForm map remains blank
-	err := r.ParseForm()
-	if err != nil {
-		app.clientError(w, http.StatusBadRequest)
-		return
-	}
-
 	// Initalize empty form
 	var form snippetCreateForm
 
-	// Call the Decode() method of the form decoder, passing in the current 
-	// request and *a pointer* to our snippetCreateForm struct. 
-	// Decode method from external pacakge handles type conversion automatically
-	err = app.formDecoder.Decode(&form, r.PostForm)
 	// If there is a problem, we return a 400 Bad Request response to the client.
+	err := app.decodePostError(r, &form)
 	if err != nil {
 		app.clientError(w, http.StatusBadRequest)
 		return

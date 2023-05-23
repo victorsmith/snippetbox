@@ -2,11 +2,36 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net/http"
 	"runtime/debug"
 	"time"
+
+	"github.com/go-playground/form/v4"
 )
+
+func (app *application) decodePostError(r *http.Request, dest any) error {
+	// 1) Parse from
+	err := r.ParseForm()
+	if err != nil {
+		return err
+	}
+
+	// 2) Call decode
+	err = app.formDecoder.Decode(dest, r.PostForm)
+	if err != nil {
+		// Check for an invalid destination error
+		// This will produce an error with the type *form.InvalidDecoderError
+		var invalidDecoderError *form.InvalidDecoderError
+		if errors.As(err, &invalidDecoderError) {
+			panic(err)
+		}
+		return err
+	}
+
+	return nil
+}
 
 // The serverError helper writes an error message and stack trace to the errorLog,
 // then sends a generic 500 Internal Server Error response to the user.
@@ -51,8 +76,8 @@ func (app *application) render(w http.ResponseWriter, data *templateData, status
 		app.serverError(w, err)
 		return
 	}
-	
-	w.WriteHeader(status)	
+
+	w.WriteHeader(status)
 	buf.WriteTo(w)
 }
 

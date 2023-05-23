@@ -7,20 +7,24 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
+
+	"github.com/alexedwards/scs/mysqlstore"
+	"github.com/alexedwards/scs/v2"
+	"github.com/go-playground/form/v4"
+	_ "github.com/go-sql-driver/mysql"
 
 	// Import internal package
-	"github.com/go-playground/form/v4"
 	"snippetbox.victorsmith.dev/internal/models"
-
-	_ "github.com/go-sql-driver/mysql"
 )
 
 type application struct {
-	infoLog       *log.Logger
-	errorLog      *log.Logger
-	snippets      *models.SnippetModel
-	templateCache map[string]*template.Template
-	formDecoder   *form.Decoder
+	infoLog        *log.Logger
+	errorLog       *log.Logger
+	snippets       *models.SnippetModel
+	templateCache  map[string]*template.Template
+	formDecoder    *form.Decoder
+	sessionManager *scs.SessionManager
 }
 
 // for a given DSN.
@@ -60,15 +64,21 @@ func main() {
 		errorLog.Fatal(err)
 	}
 
+	// Initialize session manager (w/ 12 hour time limit)
+	sessionManager := scs.New()
+	sessionManager.Store = mysqlstore.New(db)
+	sessionManager.Lifetime = 12 * time.Hour
+
 	// Initialize a decoder
 	formDecoder := form.NewDecoder()
 
 	app := &application{
-		infoLog:       infoLog,
-		errorLog:      errorLog,
-		snippets:      &models.SnippetModel{DB: db},
-		templateCache: cache,
-		formDecoder: formDecoder,
+		infoLog:        infoLog,
+		errorLog:       errorLog,
+		snippets:       &models.SnippetModel{DB: db},
+		templateCache:  cache,
+		formDecoder:    formDecoder,
+		sessionManager: sessionManager,
 	}
 
 	// Establish server so that we can add a logger (instead of using ListenAndServe)

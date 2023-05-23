@@ -19,6 +19,10 @@
   </header>
   <!-- Invoke the navigation template -->
   {{template "nav" .}}
+  <!-- Display the flash message if one exists --> 
+  {{with .Flash}} 
+    <div class='flash'>{{.}}</div> 
+  {{end}}
   <main> {{template "main" .}} </main>
   <footer>
     Powered by <a href='https://golang.org/'>Go</a> in {{.CurrentYear}}

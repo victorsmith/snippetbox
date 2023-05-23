@@ -13,11 +13,10 @@ import (
 )
 
 type snippetCreateForm struct {
-	Title   string
-	Content string
-	Expires int
-	// FieldErrors map[string]string
-	validators.Validator
+	Title                string     `form:"title"`
+	Content              string     `form:"content"`
+	Expires              int        `form:"expires"`
+	validators.Validator `form:"-"` // tells the decoder to completely ignore a field during decoding.
 }
 
 // Make the home handler a method for the application struct to introduce dependency injection?
@@ -89,18 +88,17 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Convert to int
-	// Send 400 if conversion fails (invalid date)
-	expires, err := strconv.Atoi(r.PostForm.Get("expires"))
+	// Initalize empty form
+	var form snippetCreateForm
+
+	// Call the Decode() method of the form decoder, passing in the current 
+	// request and *a pointer* to our snippetCreateForm struct. 
+	// Decode method from external pacakge handles type conversion automatically
+	err = app.formDecoder.Decode(&form, r.PostForm)
+	// If there is a problem, we return a 400 Bad Request response to the client.
 	if err != nil {
 		app.clientError(w, http.StatusBadRequest)
-	}
-
-	// Create isntance of snippetCreateForm
-	form := snippetCreateForm{
-		Title:   r.PostForm.Get("title"),
-		Content: r.PostForm.Get("content"),
-		Expires: expires,
+		return
 	}
 
 	// Validate errors

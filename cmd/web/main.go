@@ -9,6 +9,7 @@ import (
 	"os"
 
 	// Import internal package
+	"github.com/go-playground/form/v4"
 	"snippetbox.victorsmith.dev/internal/models"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -19,6 +20,7 @@ type application struct {
 	errorLog      *log.Logger
 	snippets      *models.SnippetModel
 	templateCache map[string]*template.Template
+	formDecoder   *form.Decoder
 }
 
 // for a given DSN.
@@ -57,12 +59,16 @@ func main() {
 	if err != nil {
 		errorLog.Fatal(err)
 	}
-	
+
+	// Initialize a decoder
+	formDecoder := form.NewDecoder()
+
 	app := &application{
-		infoLog:  infoLog,
-		errorLog: errorLog,
-		snippets: &models.SnippetModel{DB: db},
+		infoLog:       infoLog,
+		errorLog:      errorLog,
+		snippets:      &models.SnippetModel{DB: db},
 		templateCache: cache,
+		formDecoder: formDecoder,
 	}
 
 	// Establish server so that we can add a logger (instead of using ListenAndServe)

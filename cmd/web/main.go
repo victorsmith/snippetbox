@@ -68,6 +68,8 @@ func main() {
 	sessionManager := scs.New()
 	sessionManager.Store = mysqlstore.New(db)
 	sessionManager.Lifetime = 12 * time.Hour
+	// Cookie will only be sent via browser when https connection is being used (http is ignored)
+	sessionManager.Cookie.Secure = true
 
 	// Initialize a decoder
 	formDecoder := form.NewDecoder()
@@ -89,6 +91,6 @@ func main() {
 	}
 
 	infoLog.Printf("Starting server on %s", *addr)
-	err = srv.ListenAndServe()
+	err = srv.ListenAndServeTLS("./tls/cert.pem", "./tls/key.pem")
 	errorLog.Fatal(err)
 }

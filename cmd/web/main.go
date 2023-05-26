@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"database/sql"
 	"flag"
 	"html/template"
@@ -8,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"time"
-	"crypto/tls"
 
 	"github.com/alexedwards/scs/mysqlstore"
 	"github.com/alexedwards/scs/v2"
@@ -23,6 +23,7 @@ type application struct {
 	infoLog        *log.Logger
 	errorLog       *log.Logger
 	snippets       *models.SnippetModel
+	users          *models.UserModel
 	templateCache  map[string]*template.Template
 	formDecoder    *form.Decoder
 	sessionManager *scs.SessionManager
@@ -79,6 +80,7 @@ func main() {
 		infoLog:        infoLog,
 		errorLog:       errorLog,
 		snippets:       &models.SnippetModel{DB: db},
+		users:          &models.UserModel{DB: db},
 		templateCache:  cache,
 		formDecoder:    formDecoder,
 		sessionManager: sessionManager,
@@ -91,9 +93,9 @@ func main() {
 
 	// Establish server so that we can add a logger (instead of using ListenAndServe)
 	srv := &http.Server{
-		Addr:     *addr,
-		ErrorLog: errorLog,
-		Handler:  app.routes(),
+		Addr:      *addr,
+		ErrorLog:  errorLog,
+		Handler:   app.routes(),
 		TLSConfig: tlsConfig,
 	}
 

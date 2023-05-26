@@ -19,6 +19,14 @@ type snippetCreateForm struct {
 	validators.Validator `form:"-"` // tells the decoder to completely ignore a field during decoding.
 }
 
+type userSignupForm struct {
+	Title                string `form:"name"`
+	Email                string `form:"email"`
+	Password             string `form:"password"`
+	validators.Validator `form:"-"`
+}
+
+
 // Make the home handler a method for the application struct to introduce dependency injection?
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
 
@@ -57,7 +65,7 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 
 	data := app.newTemplateData(r)
 	data.Snippet = snippet
-	
+
 	// We render the individual snippers under the view template
 	app.render(w, data, http.StatusOK, "view.html")
 }
@@ -115,30 +123,34 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	
 	app.sessionManager.Put(r.Context(), "flash", "Snippet Succesfully Created!")
 
 	// Redirect to the snippet page
 	http.Redirect(w, r, fmt.Sprintf("/snippet/view/%d", id), http.StatusSeeOther)
 }
 
-// Auth
+// Auth Handlers
+// Fetch user login page
 func (app *application) userLogin(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Display login form")
+	data := app.newTemplateData(r)
+	app.render(w, data, http.StatusOK, "signup.html")
 }
 
-func (app *application) userLoginPost (w http.ResponseWriter, r *http.Request) {
+func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
+	
+
 	fmt.Fprintln(w, "Submit login creds")
+
 }
 
 func (app *application) userSignup(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Display signup form")
 }
 
-func (app *application) userSignupPost (w http.ResponseWriter, r *http.Request) {
+func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Submit signup creds")
 }
 
-func (app *application) userLogoutPost (w http.ResponseWriter, r *http.Request) {
+func (app *application) userLogoutPost(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Logout")
 }

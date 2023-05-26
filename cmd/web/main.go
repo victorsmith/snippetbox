@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"crypto/tls"
 
 	"github.com/alexedwards/scs/mysqlstore"
 	"github.com/alexedwards/scs/v2"
@@ -83,11 +84,17 @@ func main() {
 		sessionManager: sessionManager,
 	}
 
+	// these curve implementatiosn are written in assembly => very fast
+	tlsConfig := &tls.Config{
+		CurvePreferences: []tls.CurveID{tls.X25519, tls.CurveP256},
+	}
+
 	// Establish server so that we can add a logger (instead of using ListenAndServe)
 	srv := &http.Server{
 		Addr:     *addr,
 		ErrorLog: errorLog,
 		Handler:  app.routes(),
+		TLSConfig: tlsConfig,
 	}
 
 	infoLog.Printf("Starting server on %s", *addr)

@@ -10,12 +10,13 @@ import (
 var EmailRegexp = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
 type Validator struct {
-	FieldErrors map[string]string
+	NonFieldErrors []string
+	FieldErrors    map[string]string
 }
 
-// If the # of errors == 0 => return true
+// If the # of errors (field & non field) == 0 => return true
 func (v *Validator) Valid() bool {
-	return len(v.FieldErrors) == 0
+	return len(v.FieldErrors) == 0 && len(v.NonFieldErrors) == 0
 }
 
 // AddFieldError() adds an error message to the FieldErrors map (so long as no
@@ -30,6 +31,10 @@ func (v *Validator) AddFieldError(key, error string) {
 	if _, exists := v.FieldErrors[key]; !exists {
 		v.FieldErrors[key] = error
 	}
+}
+
+func (v *Validator) AddNonFieldError(error string) {
+	v.NonFieldErrors = append(v.NonFieldErrors, error)
 }
 
 // CheckField() adds an error message to the FieldErrors map only if a
@@ -65,7 +70,7 @@ func MinChars(input string, n int) bool {
 	return utf8.RuneCountInString(input) >= n
 }
 
-// Returns true if input matches the provided regexp (compiled) 
+// Returns true if input matches the provided regexp (compiled)
 func Matches(input string, rx *regexp.Regexp) bool {
 	return rx.MatchString(input)
 }

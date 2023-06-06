@@ -26,9 +26,14 @@ type userSignupForm struct {
 	validators.Validator `form:"-"`
 }
 
+type userLoginForm struct {
+	Email                string `form:"email"`
+	Password             string `form:"password"`
+	validators.Validator `form:"-"`
+}
+
 // Make the home handler a method for the application struct to introduce dependency injection?
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
-
 	snippets, err := app.snippets.Latest()
 	if err != nil {
 		app.serverError(w, err)
@@ -37,7 +42,6 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 
 	data := app.newTemplateData(r)
 	data.Snippets = snippets
-
 	app.render(w, data, http.StatusOK, "home.html")
 }
 
@@ -131,13 +135,65 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 // Auth Handlers
 // Fetch user login page
 func (app *application) userLogin(w http.ResponseWriter, r *http.Request) {
-	// data := app.newTemplateData(r)
-	// app.render(w, data, http.StatusOK, "signup.html")
-	fmt.Fprintln(w, "Login Page")
+	data := app.newTemplateData(r)
+	data.Form = userLoginForm{}
+	app.render(w, data, http.StatusOK, "login.html")
 }
 
 func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Submit login creds")
+	// Initialize empty form
+	var form userLoginForm
+
+	// Decode form errors => ** how does this work exactly?
+	err := app.decodePostError(r, &form)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	// Validate form fields
+	form.CheckField(validators.NotBlank(form.Email), "email", "This field cannot be blank")
+	form.CheckField(validators.Matches(form.Email, validators.EmailRegexp), "email", "Field must be a valid email address")
+	form.CheckField(validators.NotBlank(form.Password), "password", "This field cannot be blank")
+
+	// Redirect to login page if the form contains any errors
+	if !form.Valid() {
+		data := app.newTemplateData(r)
+		data.Form = form
+		app.render(w, data, http.StatusUnprocessableEntity, "login.html")
+		return
+	}
+
+	// Check credential validity
+	id, err := app.users.Authenticate(form.Email, form.Password) 
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidCredentials) {
+			form.AddNonFieldError("Email or Password is incorrect")
+			data := app.newTemplateData(r)
+			data.Form = form
+			app.render(w, data, http.StatusUnprocessableEntity, "login.html")
+			return
+		} else {
+			// Catch other errors
+			app.serverError(w, err)
+			return
+		}
+	}
+		
+	// Use the RenewToken() method on the current session to change the session ID (generate a new id).
+	// This should be done if: a) auth state changes or b) privelages state changes for the user
+	// Do at login and logout
+	err = app.sessionManager.RenewToken(r.Context())
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	// Add user id to session
+	app.sessionManager.Put(r.Context(), "authenticatedUserId", id)
+
+	// Redirect user
+	http.Redirect(w, r, "/snippet/create", http.StatusSeeOther)
 }
 
 func (app *application) userSignup(w http.ResponseWriter, r *http.Request) {

@@ -165,7 +165,7 @@ func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check credential validity
-	id, err := app.users.Authenticate(form.Email, form.Password) 
+	id, err := app.users.Authenticate(form.Email, form.Password)
 	if err != nil {
 		if errors.Is(err, models.ErrInvalidCredentials) {
 			form.AddNonFieldError("Email or Password is incorrect")
@@ -179,7 +179,7 @@ func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-		
+
 	// Use the RenewToken() method on the current session to change the session ID (generate a new id).
 	// This should be done if: a) auth state changes or b) privelages state changes for the user
 	// Do at login and logout
@@ -228,8 +228,6 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// fmt.Fprintln(w, "Creating new user")
-
 	// Insert valid data
 	err = app.users.Insert(form.Name, form.Email, form.Password)
 	if err != nil {
@@ -247,12 +245,21 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println("r.Context()", r.Context())
 	app.sessionManager.Put(r.Context(), "flash", "Your signup was successful. Please log in.")
-
 	http.Redirect(w, r, "/user/login", http.StatusSeeOther)
 }
 
 func (app *application) userLogoutPost(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Logout")
+	// Change the session token
+	err := app.sessionManager.RenewToken(r.Context())
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	// Remove authenticated userId
+	app.sessionManager.Remove(r.Context(), "authenticatedUserId")
+	// Add a flash message to communicate the user has been logged out
+	app.sessionManager.Put(r.Context(), "flash", "User has been logged out")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

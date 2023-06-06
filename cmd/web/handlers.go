@@ -20,12 +20,11 @@ type snippetCreateForm struct {
 }
 
 type userSignupForm struct {
-	Title                string `form:"name"`
+	Name                 string `form:"name"`
 	Email                string `form:"email"`
 	Password             string `form:"password"`
 	validators.Validator `form:"-"`
 }
-
 
 // Make the home handler a method for the application struct to introduce dependency injection?
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
@@ -132,23 +131,48 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 // Auth Handlers
 // Fetch user login page
 func (app *application) userLogin(w http.ResponseWriter, r *http.Request) {
-	data := app.newTemplateData(r)
-	app.render(w, data, http.StatusOK, "signup.html")
+	// data := app.newTemplateData(r)
+	// app.render(w, data, http.StatusOK, "signup.html")
+	fmt.Fprintln(w, "Login Page")
 }
 
 func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
-	
-
 	fmt.Fprintln(w, "Submit login creds")
-
 }
 
 func (app *application) userSignup(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Display signup form")
+	data := app.newTemplateData(r)
+	data.Form = userSignupForm{}
+	app.render(w, data, http.StatusOK, "signup.html")
 }
 
 func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Submit signup creds")
+	var form userSignupForm
+
+	err := app.decodePostError(r, &form)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	// Validate form content using helpers
+	// Validate the form contents using our helper functions.
+
+	form.CheckField(validators.NotBlank(form.Name), "name", "This field cannot be blank")
+	form.CheckField(validators.NotBlank(form.Email), "email", "This field cannot be blank")
+	form.CheckField(validators.Matches(form.Email, validators.EmailRegexp), "email", "This field must be a valid email address")
+	form.CheckField(validators.NotBlank(form.Password), "password", "This field cannot be blank")
+	form.CheckField(validators.MinChars(form.Password, 8), "password", "This field must be at least 8 characters long")
+
+	if !form.Valid() {
+		data := app.newTemplateData(r)
+		data.Form = form
+		// Return to signup page and display errors in template
+		app.render(w, data, http.StatusUnprocessableEntity, "signup.html")
+		return
+	}
+	
+	fmt.Fprintln(w, "Creating new user")
 }
 
 func (app *application) userLogoutPost(w http.ResponseWriter, r *http.Request) {

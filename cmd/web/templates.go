@@ -20,11 +20,12 @@ var functions = template.FuncMap{
 // Make a holding structure for incoming data
 // Can expand if we wish to add additional data later on
 type templateData struct {
-	Snippet     *models.Snippet
-	Snippets    []*models.Snippet
-	CurrentYear int
-	Form        any
-	Flash       string
+	Snippet         *models.Snippet
+	Snippets        []*models.Snippet
+	CurrentYear     int
+	Form            any
+	Flash           string
+	IsAuthenticated bool
 }
 
 // filename: []ts

@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/justinas/nosurf"
 )
 
 // This mw will act on all routes
@@ -43,3 +45,37 @@ func (app *application) recoverPanic(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+
+func (app *application) requireAuthentication(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check if user is authenticated
+		// If yes => go to next middleware call
+		// If no 	=> stop the chain and goto login page
+		if !app.isAuthenticated(r) {
+			http.Redirect(w,r, "/user/login", http.StatusSeeOther)
+			// Return stops mw proceeding
+			return 
+		}
+
+		// Set cache-control header to "no-store" s.t pages which require auth aren't stored
+		// in users browser cache / or other intermediary caches
+		// TODO: learn more about cache-control header
+		w.Header().Add("Cache-Control", "no-store")
+		next.ServeHTTP(w, r)
+	})
+}
+
+// Create a NoSurf middleware function which uses a customized CSRF cookie with 
+// the Secure, Path and HttpOnly attributes set.
+func noSurf(next http.Handler) http.Handler {
+	csrfHandler := nosurf.New(next)
+	csrfHandler.SetBaseCookie(http.Cookie{
+		HttpOnly: true,
+		Path: "/",
+		Secure: true,
+	})
+
+	return csrfHandler
+}
+

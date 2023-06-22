@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -46,16 +47,15 @@ func (app *application) recoverPanic(next http.Handler) http.Handler {
 	})
 }
 
-
 func (app *application) requireAuthentication(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Check if user is authenticated
 		// If yes => go to next middleware call
 		// If no 	=> stop the chain and goto login page
 		if !app.isAuthenticated(r) {
-			http.Redirect(w,r, "/user/login", http.StatusSeeOther)
+			http.Redirect(w, r, "/user/login", http.StatusSeeOther)
 			// Return stops mw proceeding
-			return 
+			return
 		}
 
 		// Set cache-control header to "no-store" s.t pages which require auth aren't stored
@@ -66,16 +66,50 @@ func (app *application) requireAuthentication(next http.Handler) http.Handler {
 	})
 }
 
-// Create a NoSurf middleware function which uses a customized CSRF cookie with 
+// Create a NoSurf middleware function which uses a customized CSRF cookie with
 // the Secure, Path and HttpOnly attributes set.
 func noSurf(next http.Handler) http.Handler {
 	csrfHandler := nosurf.New(next)
 	csrfHandler.SetBaseCookie(http.Cookie{
 		HttpOnly: true,
-		Path: "/",
-		Secure: true,
+		Path:     "/",
+		Secure:   true,
 	})
 
 	return csrfHandler
 }
 
+
+func (app *application) authenticate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Get authenticatedUserId from session
+		// If not present => 0 returned + mw chain stops
+		id := app.sessionManager.GetInt(r.Context(), "authenticatedUserId")
+		if id == 0 {
+			// Still pass unchanged request and let the middleware handle it
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Check if user exists
+		exists, err := app.users.Exists(id)
+		if err != nil {
+			app.serverError(w, err)
+			return
+		}
+		
+		// If a matching user is found, we know that the request is 
+		// coming from an authenticated user who exists in our database. We 
+		// create a new copy of the request (with an isAuthenticatedContextKey 
+		// value of true in the request context) and assign it to r.
+		if exists {
+			ctx := context.WithValue(r.Context(), isAuthenticatedContextKey, true)
+			r = r.WithContext(ctx)
+		}
+
+		fmt.Println("gets here 1")
+
+		// Call the next handler in the chain. next.ServeHTTP(w, r)
+		next.ServeHTTP(w, r)
+	})
+}

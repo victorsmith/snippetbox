@@ -91,7 +91,16 @@ func (app *application) newTemplateData(r *http.Request) *templateData {
 	}
 }
 
-// Verify is userId is in the request context. if it is => return true / else => false
-func (app *application) isAuthenticated(r *http.Request) bool {
-	return app.sessionManager.Exists(r.Context(), "authenticatedUserId")
+// Verify is userId is in the request context (using customType in order to avoid collisions)
+// if it is => return true / else => false
+func (app *application) isAuthenticated(r *http.Request) bool {	
+	isAuthenticated, ok := r.Context().Value(isAuthenticatedContextKey).(bool)
+	if !ok {
+		fmt.Println("fails here")
+		return false
+	}
+
+	// fmt.Println("fails here")
+
+	return isAuthenticated
 }

@@ -90,3 +90,4 @@ func (m *UserModel) Exists(id int) (bool, error) {
 	err := m.DB.QueryRow(stmt, id).Scan(&exists) 
 	return exists, err
 }
+

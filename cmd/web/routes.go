@@ -3,6 +3,8 @@ package main
 import (
 	"net/http"
 
+	"snippetbox.victorsmith.dev/ui"
+
 	"github.com/julienschmidt/httprouter" // for better routing
 	"github.com/justinas/alice"           // for better middleware chaining
 )
@@ -15,13 +17,18 @@ func (app *application) routes() http.Handler {
 	router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		app.notFound(w)
 	})
+	
+	// Old approach
+	// fileServer := http.FileServer(http.Dir("./ui/static/"))
+	
+	// Take ui.Files and covert to http.FS type to satisfy the http.Filesystem interface
+	fileServer := http.FileServer(http.FS(ui.Files))
 
-	fileServer := http.FileServer(http.Dir("./ui/static/"))
-	// Strips '/static' leaving only /. That way the file server
-	// doesn't process an unwanted resource (/static) if it happens to exist
-	// mux.Handle("/static/", http.StripPrefix("/static", fileServer))
-	// /*filepath => this is a catch all
-	router.Handler(http.MethodGet, "/static/*filepath", http.StripPrefix("/static", fileServer))
+	// now longer need to strip the prefix from the request URL 
+	// any requests that start with /static/ can just be passed 
+	// directly to the file server and the corresponding static 
+	// file will be served (so long as it exists).
+	router.Handler(http.MethodGet, "/static/*filepath", fileServer)
 
 	// New middleware chain for stateful routes
 	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf, app.authenticate)

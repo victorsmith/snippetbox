@@ -109,7 +109,7 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 	form.CheckField(validators.NotBlank(form.Title), "title", "This field cannot be blank")
 	form.CheckField(validators.MaxChars(form.Title, 100), "title", "this field cannot be 100 chars long")
 	form.CheckField(validators.NotBlank(form.Content), "content", "This field cannot be blank")
-	form.CheckField(validators.PermittedInt(form.Expires, 1, 7, 365), "expires", "Value must be 1, 7 or 365")
+	form.CheckField(validators.PermittedValue(form.Expires, 1, 7, 365), "expires", "Value must be 1, 7 or 365")
 
 	// use the HTTP status code 422 Unprocessable Entity to indicate bad data in fomr
 	// pass the snippetCreateForm object to the template

@@ -1,6 +1,6 @@
 module snippetbox.victorsmith.dev
 
-go 1.20
+go 1.21
 
 require (
 	github.com/alexedwards/scs/mysqlstore v0.0.0-20230327161757-10d4299e3b24 // indirect
